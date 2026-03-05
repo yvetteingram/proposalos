@@ -19,7 +19,7 @@ export function AuthView() {
         // Check purchase before allowing signup
         const { data: profile } = await supabase
           .from('profiles')
-          .select('proposalOS_access')
+          .select('proposalos_access')
           .eq('email', email.toLowerCase().trim())
           .single()
 
