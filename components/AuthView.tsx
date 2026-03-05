@@ -122,7 +122,7 @@ export function AuthView() {
               <p className="text-white/50 text-sm">
                 Requires a ProposalOS purchase.{' '}
                 <a
-                  href="https://gumroad.com/l/proposalOS"
+                  href="https://ketorahdigital.gumroad.com/l/proposalos"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-violet-400 hover:text-violet-300 underline"
