@@ -51,7 +51,7 @@ export default function App() {
 
     supabase
       .from('profiles')
-      .select('proposalOS_access')
+      .select('proposalos_access')
       .eq('id', session.user.id)
       .single()
       .then(({ data }) => {
