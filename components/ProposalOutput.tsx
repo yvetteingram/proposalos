@@ -3,6 +3,9 @@ import jsPDF from 'jspdf'
 import type { ProposalIntake, ProposalMetrics, ProposalAIOutput, ScopeAudit, CloseOptimization } from '../types'
 import { formatCurrency, formatPercent } from './metrics'
 import { callGroq } from '../services/groq'
+import { supabase } from '../services/supabase'
+
+const MONTHLY_LIMIT = 50
 
 interface ProposalOutputProps {
   intake: ProposalIntake
@@ -11,26 +14,53 @@ interface ProposalOutputProps {
   onReady: (output: ProposalAIOutput) => void
   onBack: () => void
   onStartOver?: () => void
+  userId: string
 }
 
-export function ProposalOutput({ intake, metrics, aiOutput, onReady, onBack, onStartOver }: ProposalOutputProps) {
+export function ProposalOutput({ intake, metrics, aiOutput, onReady, onBack, onStartOver, userId }: ProposalOutputProps) {
   const [loading, setLoading] = useState(!aiOutput)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<'proposal' | 'audit' | 'close'>('proposal')
   const [exporting, setExporting] = useState(false)
+  const [usageCount, setUsageCount] = useState<number | null>(null)
 
   useEffect(() => {
     if (aiOutput) return
     generateOutput()
   }, [])
 
+  const checkUsage = async (): Promise<boolean> => {
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+    const { count, error } = await supabase
+      .from('proposal_runs')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', startOfMonth)
+    if (error) return true
+    setUsageCount(count ?? 0)
+    return (count ?? 0) < MONTHLY_LIMIT
+  }
+
+  const logRun = async () => {
+    await supabase
+      .from('proposal_runs')
+      .insert({ user_id: userId, created_at: new Date().toISOString() })
+  }
+
   const generateOutput = async () => {
     setLoading(true)
     setError(null)
     try {
+      const withinLimit = await checkUsage()
+      if (!withinLimit) {
+        setError('LIMIT_REACHED')
+        return
+      }
       const prompt = buildPrompt(intake, metrics)
       const raw = await callGroq([{ role: 'user', content: prompt }])
       const parsed = parseAIOutput(raw)
+      await logRun()
       onReady(parsed)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed. Please try again.')
@@ -178,6 +208,18 @@ export function ProposalOutput({ intake, metrics, aiOutput, onReady, onBack, onS
         <div className="w-12 h-12 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mx-auto mb-6" />
         <h2 className="text-white text-xl font-bold mb-2">Building Your Proposal Package</h2>
         <p className="text-white/60 text-base">Running scope audit, margin stress test, and close optimization…</p>
+      </div>
+    )
+  }
+
+  if (error === 'LIMIT_REACHED') {
+    return (
+      <div className="max-w-2xl mx-auto text-center py-20">
+        <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center mx-auto mb-6 text-2xl">⚡</div>
+        <h2 className="text-white text-xl font-bold mb-2">Monthly Limit Reached</h2>
+        <p className="text-white/60 text-base mb-2">You have used all {MONTHLY_LIMIT} proposals for this month.</p>
+        <p className="text-white/40 text-sm mb-6">Your limit resets on the 1st of next month.</p>
+        <button onClick={onBack} className="text-base text-white/60 hover:text-white/80 transition-colors px-4 py-2">← Back</button>
       </div>
     )
   }

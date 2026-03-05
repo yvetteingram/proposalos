@@ -51,11 +51,11 @@ export default function App() {
 
     supabase
       .from('profiles')
-      .select('proposalos_access')
+      .select('proposalOS_access')
       .eq('id', session.user.id)
       .single()
       .then(({ data }) => {
-        setHasAccess(data?.proposalos_access ?? false)
+        setHasAccess(data?.proposalOS_access ?? false)
         setCheckingAccess(false)
       })
   }, [session])
@@ -146,6 +146,7 @@ export default function App() {
             metrics={metrics}
             onReady={handleOutputReady}
             onBack={() => setView('metrics')}
+            userId={session.user.id}
           />
         )}
 
@@ -157,6 +158,7 @@ export default function App() {
             onReady={handleOutputReady}
             onBack={handleStartOver}
             onStartOver={handleStartOver}
+            userId={session.user.id}
           />
         )}
       </main>
