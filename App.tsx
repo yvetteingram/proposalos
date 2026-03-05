@@ -55,7 +55,7 @@ export default function App() {
       .eq('id', session.user.id)
       .single()
       .then(({ data }) => {
-        setHasAccess(data?.proposalOS_access ?? false)
+        setHasAccess(data?.proposalos_access ?? false)
         setCheckingAccess(false)
       })
   }, [session])

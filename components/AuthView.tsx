@@ -23,7 +23,7 @@ export function AuthView() {
           .eq('email', email.toLowerCase().trim())
           .single()
 
-        if (!profile?.proposalOS_access) {
+        if (!profile?.proposalos_access) {
           setError('No purchase found for this email. Buy ProposalOS on Gumroad first, then create your account with the same email.')
           setLoading(false)
           return
